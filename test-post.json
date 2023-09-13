@@ -1,0 +1,7 @@
+{
+    "body": "{\"field1\":\"abc\",\"field2\":\"efd\",\"field3\":1234}",
+    "httpMethod": "POST",
+    "headers": {
+        "Content-Type": "application/json"
+    }
+}

@@ -1,0 +1,180 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  goFramework
+  Sample SAM Template for goFramework
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 500
+    MemorySize: 128
+    Environment:
+      Variables:
+        REGION: us-east-1
+        TEST_TABLE: testtable
+        
+    Tracing: Active
+  Api:
+    TracingEnabled: true
+  
+
+Resources:     
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors:
+        AllowMethods: "'*'" # Allow all methods (GET, POST, PUT, DELETE, OPTIONS)
+        AllowHeaders: "'*'" # Allow all headers
+        AllowOrigin: "'*'"  # Allow all origins (* for any origin)
+      Auth:
+        DefaultAuthorizer: MyCognitoAuthorizer
+        Authorizers:
+          MyCognitoAuthorizer:
+            UserPoolArn: arn:aws:cognito-idp:us-east-1:043122647742:userpool/us-east-1_iHfgGMLa7
+  MyApiNoAuth:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Cors: "'*'"
+      Auth:
+       {}
+  CreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/Archive/createArchive/main.handler
+      Runtime: go1.x
+      Policies:
+        - AmazonAPIGatewayInvokeFullAccess
+        - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - AWSLambdaInvocation-DynamoDB
+      CodeUri: ./handlers/Archive/createArchive
+      Events:
+        CreateApi:
+          Type: Api
+          Properties:
+            Path: handlers/Archive/createArchive
+            Method: POST
+            RestApiId: !Ref MyApiNoAuth
+      Tracing: Active
+  ConfigLambdaPermissionCreate:
+    Type: "AWS::Lambda::Permission"
+    DependsOn:
+    - CreateFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CreateFunction
+      Principal: apigateway.amazonaws.com   
+  
+  GetAllFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/Archive/getArchive/main.handler
+      Runtime: go1.x
+      Policies:
+        - AmazonAPIGatewayInvokeFullAccess
+        - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - AWSLambdaInvocation-DynamoDB
+      CodeUri: ./handlers/Archive/getArchive
+      Events:
+        GetAllApi:
+          Type: Api
+          Properties:
+            Path: handlers/Archive/getArchive
+            Method: GET
+            RestApiId: !Ref MyApi
+  ConfigLambdaPermissionGetAll:
+    Type: "AWS::Lambda::Permission"
+    DependsOn:
+    - GetAllFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GetAllFunction
+      Principal: apigateway.amazonaws.com
+  GetByIdFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/Archive/getArchiveByField/main.handler
+      Runtime: go1.x
+      Policies:
+        - AmazonAPIGatewayInvokeFullAccess
+        - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - AWSLambdaInvocation-DynamoDB
+      CodeUri: ./handlers/Archive/getArchiveByField
+      Events:
+        GetByIdApi:
+          Type: Api
+          Properties:
+            Path: handlers/Archive/getArchiveByField/{field1}
+            Method: GET
+            RestApiId: !Ref MyApi
+      Tracing: Active
+  ConfigLambdaPermissionGetById:
+    Type: "AWS::Lambda::Permission"
+    DependsOn:
+    - GetByIdFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GetByIdFunction
+      Principal: apigateway.amazonaws.com
+  UpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/Archive/updateArchive/main.handler
+      Runtime: go1.x
+      Policies:
+        - AmazonAPIGatewayInvokeFullAccess
+        - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - AWSLambdaInvocation-DynamoDB
+        - AmazonS3FullAccess
+      CodeUri: ./handlers/Archive/updateArchive
+      Events:
+        UpdateAApi:
+          Type: Api
+          Properties:
+            Path: handlers/Archive/updateArchive
+            Method: PUT
+            RestApiId: !Ref MyApiNoAuth
+  ConfigLambdaPermissionUpdate:
+    Type: "AWS::Lambda::Permission"
+    DependsOn:
+    - UpdateFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref UpdateFunction
+      Principal: apigateway.amazonaws.com
+  
+  DeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/Archive/deleteArchive/main.handler
+      Runtime: go1.x
+      Policies:
+        - AmazonAPIGatewayInvokeFullAccess
+        - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - AWSLambdaInvocation-DynamoDB
+      CodeUri: ./handlers/Archive/deleteArchive
+      Events:
+        DeleteAccountApi:
+          Type: Api
+          Properties:
+            Path: handlers/Archive/deleteArchive/{field1}
+            Method: GET
+            RestApiId: !Ref MyApi
+      Tracing: Active
+  ConfigLambdaPermissionDeleteFunction:
+    Type: "AWS::Lambda::Permission"
+    DependsOn:
+    - DeleteFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref DeleteFunction
+      Principal: apigateway.amazonaws.com  
+  
+  
+ 
